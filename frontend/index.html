@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Stripe Minimal Example</title>
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+
+<h2>Pay €22</h2>
+
+<form id="payment-form">
+  <label>
+    Amount (€):
+    <input type="number" id="amount" value="20" min="1" />
+  </label>
+  <br />
+  <label>
+    Currency:
+    <input type="text" id="currency" value="eur" />
+  </label>
+  <br /><br />
+
+  <div id="card-element"></div>
+  <button id="submit">Pay</button>
+</form>
+
+<div id="message"></div>
+
+<script>
+  // dont freakout this is public key for client side
+  const stripe = Stripe("pk_test_51RtmfNBQncyRF4XUamjamQt9YXvQ4ft1J9FWnXNEksXesc2m38OBWu20MeJrHedUCVeAmNP8gbBlabdM93ZXQKkC00pWKGQ85g");
+
+  const cardElement = stripe.elements().create("card");
+  cardElement.mount("#card-element");
+
+  const form = document.getElementById("payment-form");
+  const message = document.getElementById("message");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    message.textContent = "Creating payment...";
+
+    const amountInput = document.getElementById("amount").value;
+    const currencyInput = document.getElementById("currency").value || "eur";
+    const amount = Math.round(parseFloat(amountInput) * 100);
+
+    const res = await fetch("http://localhost:6767/create-payment-intent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: amount,
+        currency: currencyInput
+      })
+    });
+
+    const data = await res.json();
+    const clientSecret = data.clientSecret;
+
+    const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+      payment_method: {
+        card: cardElement
+      }
+    });
+
+    if (error) {
+      message.textContent = "error: " + error.message;
+      return;
+    }
+
+    if (paymentIntent.status === "succeeded") {
+      message.textContent = "Payment succeeded!";
+    } else {
+      message.textContent = "Payment status: " + paymentIntent.status;
+    }
+  });
+</script>
+
+</body>
+</html>
