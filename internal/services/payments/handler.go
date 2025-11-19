@@ -72,30 +72,29 @@ func (h *handler) WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	endpointSecret := h.stripeWebhookSecret
 	if endpointSecret == "" {
 		slog.Error("stripeWebhookSecret not set")
-		http.Error(w, "Webhook secret not configured", http.StatusInternalServerError)
+		http.Error(w, "webhook secret not configured", http.StatusInternalServerError)
 		return
 	}
 
 	sigHeader := r.Header.Get("Stripe-Signature")
 	event, err := webhook.ConstructEvent(payload, sigHeader, endpointSecret)
 	if err != nil {
-		slog.Error("⚠️  Webhook signature verification failed", "error", err)
-		http.Error(w, "Signature verification failed", http.StatusBadRequest)
+		slog.Error("webhook signature verification failed", "error", err)
+		http.Error(w, "signature verification failed", http.StatusBadRequest)
 		return
 	}
 
 	// Handle the event
 	switch event.Type {
 	case "checkout.session.completed":
-		// Deserialize the event data into the proper struct
 		var sess stripe.CheckoutSession
 		if err := json.Unmarshal(event.Data.Raw, &sess); err != nil {
-			slog.Error("Error parsing webhook JSON", "error", err)
+			slog.Error("error parsing webhook JSON", "error", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		// TODO: fulfill the purchase, e.g. mark order paid in DB
-		slog.Info("Checkout session completed: session id=%s, payment_status=%s", sess.ID, sess.PaymentStatus)
+		slog.Info("checkout session completed: session id=%s, payment_status=%s", sess.ID, sess.PaymentStatus)
 
 	case "payment_intent.succeeded":
 		var pi stripe.PaymentIntent
@@ -107,13 +106,10 @@ func (h *handler) WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		// TODO: mark order as paid (if using PaymentIntent)
 		slog.Info("PaymentIntent succeeded: id=%s, amount=%d", pi.ID, pi.Amount)
 
-	// handle other relevant events:
-	// case "invoice.payment_succeeded": for subscriptions
 	default:
 		slog.Error("Unhandled event type", "event_type", event.Type)
 	}
 
-	// Return 200 to acknowledge receipt
 	w.WriteHeader(http.StatusOK)
 }
 
