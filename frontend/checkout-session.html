@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Stripe Checkout Session Example</title>
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+
+<h2>Pay with Checkout</h2>
+
+<form id="checkout-form">
+  <label>
+    Amount (€):
+    <input type="number" id="amount" value="20" min="1" />
+  </label>
+  <br />
+  <label>
+    Currency:
+    <input type="text" id="currency" value="eur" />
+  </label>
+  <br /><br />
+  <button id="checkout-btn">Pay</button>
+</form>
+
+<div id="message"></div>
+
+<script>
+  // public key
+  const stripe = Stripe("pk_test_51RtmfNBQncyRF4XUamjamQt9YXvQ4ft1J9FWnXNEksXesc2m38OBWu20MeJrHedUCVeAmNP8gbBlabdM93ZXQKkC00pWKGQ85g");
+
+  const form = document.getElementById("checkout-form");
+  const message = document.getElementById("message");
+  const checkoutBtn = document.getElementById("checkout-btn");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    checkoutBtn.disabled = true;
+    message.textContent = "Creating Checkout Session...";
+
+    const amountInput = document.getElementById("amount").value || 20;
+    const currencyInput = document.getElementById("currency").value || "eur";
+    const amount = Math.round(parseFloat(amountInput) * 100);
+
+    try {
+      const res = await fetch("http://localhost:6767/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: amount,
+          currency: currencyInput,
+          successUrl: "https://example.com",
+          cancelUrl: "https://example.com/cancel",
+        })
+      });
+
+      const data = await res.json();
+      if (!data.id) {
+        message.textContent = "Failed to create Checkout session";
+        checkoutBtn.disabled = false;
+        return;
+      }
+
+      const { error } = await stripe.redirectToCheckout({ sessionId: data.id });
+      if (error) {
+        message.textContent = "Error: " + error.message;
+        checkoutBtn.disabled = false;
+      }
+    } catch (err) {
+      message.textContent = "Network error: " + err.message;
+      checkoutBtn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

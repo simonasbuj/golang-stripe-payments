@@ -26,20 +26,31 @@ func NewHandler(stripeSecretKey, stripeWebhookSecret string) *handler {
 
 func (h *handler) CreateCheckoutSessionHandler(w http.ResponseWriter, r *http.Request) {
 	slog.Info("running CreateCheckoutSessionHandler")
+	var body struct {
+		Amount   int64  	`json:"amount"`
+		Currency string 	`json:"currency"`
+		SuccessUrl string 	`json:"successUrl"`
+		CancelUrl string 	`json:"cancelUrl"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
 
 	params := &stripe.CheckoutSessionParams{
 		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
 		Mode:               stripe.String(string(stripe.CheckoutSessionModePayment)),
-		SuccessURL:         stripe.String("https://example.com/success?session_id={CHECKOUT_SESSION_ID}"),
-		CancelURL:          stripe.String("https://example.com/cancel"),
+		SuccessURL:         stripe.String(body.SuccessUrl),
+		CancelURL:          stripe.String(body.CancelUrl),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
 				PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{
-					Currency: stripe.String("eur"),
+					Currency: stripe.String(body.Currency),
 					ProductData: &stripe.CheckoutSessionLineItemPriceDataProductDataParams{
 						Name: stripe.String("order-number"),
 					},
-					UnitAmount: stripe.Int64(2000),
+					UnitAmount: stripe.Int64(body.Amount),
 				},
 				Quantity: stripe.Int64(1),
 			},
