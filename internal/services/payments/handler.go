@@ -43,6 +43,12 @@ func (h *handler) CreateCheckoutSessionHandler(w http.ResponseWriter, r *http.Re
 		Mode:               stripe.String(string(stripe.CheckoutSessionModePayment)),
 		SuccessURL:         stripe.String(body.SuccessUrl),
 		CancelURL:          stripe.String(body.CancelUrl),
+		PaymentIntentData: &stripe.CheckoutSessionPaymentIntentDataParams{
+			Metadata: map[string]string{
+				"order_id": "this-gon-be-custom-order-id-PI",
+				"store_id": "custom-store-id-PI",
+			},
+		},
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
 				PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{

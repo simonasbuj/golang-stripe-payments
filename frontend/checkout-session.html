@@ -12,7 +12,7 @@
 <form id="checkout-form">
   <label>
     Amount (€):
-    <input type="number" id="amount" value="20" min="1" />
+    <input type="number" id="amount" value="20.00" min="1.00" step="0.01"/>
   </label>
   <br />
   <label>
@@ -49,8 +49,8 @@
         body: JSON.stringify({
           amount: amount,
           currency: currencyInput,
-          successUrl: "https://example.com",
-          cancelUrl: "https://example.com/cancel",
+          successUrl: "http://localhost:6767?succes=true",
+          cancelUrl: "http://localhost:6767?cancel=true",
         })
       });
 
