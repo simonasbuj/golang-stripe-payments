@@ -19,6 +19,11 @@
     Currency:
     <input type="text" id="currency" value="eur" />
   </label>
+  <br />
+  <label>
+    Order ID:
+    <input type="text" id="orderId" value="order-001" />
+  </label>
   <br /><br />
 
   <div id="card-element"></div>
@@ -45,17 +50,30 @@
     const amountInput = document.getElementById("amount").value;
     const currencyInput = document.getElementById("currency").value || "eur";
     const amount = Math.round(parseFloat(amountInput) * 100);
+    const orderId = document.getElementById("orderId").value;
 
     const res = await fetch("http://localhost:6767/create-payment-intent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         amount: amount,
-        currency: currencyInput
+        currency: currencyInput,
+        orderId: orderId,
       })
     });
 
-    const data = await res.json();
+    if (!res.ok) {
+      let errMsg = "Unknown error from server";
+      try {
+        const errData = await res.json();
+        if (errData.error) errMsg = errData.error;
+      } catch (e) {
+      }
+      message.textContent = "Error from Golang API: " + errMsg;
+      throw new Error(errMsg)
+    }
+
+    const data = await res.json()
     const clientSecret = data.clientSecret;
 
     const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {

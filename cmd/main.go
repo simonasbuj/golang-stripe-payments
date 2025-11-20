@@ -23,14 +23,15 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	handler := payments.NewHandler(cfg.Stripe.SecretKey, cfg.Stripe.WebhookSecret)
+	stripePaymentProvider := payments.NewStripeProvider(cfg.Stripe.SecretKey, cfg.Stripe.WebhookSecret)
+	handler := payments.NewHandler(stripePaymentProvider)
 
 	fs := http.FileServer(http.Dir("./frontend"))
 	http.Handle("/", fs)
 
 	http.HandleFunc("/create-checkout-session", handler.CreateCheckoutSessionHandler)
 	http.HandleFunc("/create-payment-intent", handler.CreatePaymentIntentHandler)
-	http.HandleFunc("/webhook", handler.WebhookHandler)
+	http.HandleFunc("/webhook/stripe/payment-success", handler.PaymentSuccessWebhook)
 
 	slog.Info(fmt.Sprintf("Server running on %s", cfg.Http.Addr))
 

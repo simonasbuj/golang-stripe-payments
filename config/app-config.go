@@ -14,4 +14,3 @@ type StripeConfig struct {
 	SecretKey string `env:"STRIPE_SECRET_KEY"`
 	WebhookSecret string `env:"STRIPE_WEBHOOK_SECRET"`
 }
-
