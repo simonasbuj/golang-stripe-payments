@@ -95,22 +95,21 @@ func (p *StripeProvider) HandlePaymentSuccess(payload []byte, sigHeader string) 
 		return nil, fmt.Errorf("veryfing stripe webhook signature: %w", err)
 	}
 
-	switch event.Type {
-	case "payment_intent.succeeded":
-		var pi stripe.PaymentIntent
-		err := json.Unmarshal(event.Data.Raw, &pi)
-		if err != nil {
-			return nil, fmt.Errorf("unmarhsaling payment_intent: %w", err)
-		}
-		// TODO: mark order as paid (if using PaymentIntent)
-		return &PaymentSuccessWebhookResponse{
-			ID: pi.ID,
-			Amount: pi.Amount,
-			Currency: string(pi.Currency),
-			OrderID: pi.Metadata["order_id"],
-		}, nil
-
-	default:
+	if event.Type != "payment_intent.succeeded" {
 		return nil, fmt.Errorf("%w: %s", errUnknownWebhookEventType, event.Type)
 	}
+
+	var pi stripe.PaymentIntent
+
+	err = json.Unmarshal(event.Data.Raw, &pi)
+	if err != nil {
+		return nil, fmt.Errorf("unmarhsaling payment_intent: %w", err)
+	}
+
+	return &PaymentSuccessWebhookResponse{
+		ID: pi.ID,
+		Amount: pi.Amount,
+		Currency: string(pi.Currency),
+		OrderID: pi.Metadata["order_id"],
+	}, nil
 }
