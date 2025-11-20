@@ -1,4 +1,4 @@
-package payments
+package types
 
 type PaymentRequest struct {
 	Amount   	int64  	`json:"amount"`
