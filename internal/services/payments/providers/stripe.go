@@ -1,23 +1,15 @@
-package payments
+package providers
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	"golang-stripe-payments/internal/services/payments/types"
 
 	"github.com/stripe/stripe-go/v84"
 	"github.com/stripe/stripe-go/v84/checkout/session"
 	"github.com/stripe/stripe-go/v84/paymentintent"
 	"github.com/stripe/stripe-go/v84/webhook"
 )
-
-var errUnknownWebhookEventType = errors.New("unhandled event type")
-
-type PaymentProvider interface {
-	CreateCheckoutSession(req PaymentRequest) (string, error)
-	CreatePaymentIntent(req PaymentRequest) (string, error)
-	HandlePaymentSuccess(payload []byte, sigHeader string) (*PaymentSuccessWebhookResponse, error)
-}
 
 type StripeProvider struct {
 	webhookSecret string
@@ -34,9 +26,9 @@ func NewStripeProvider(secretKey, webhookSecret string) *StripeProvider {
 	}
 }
 
-func (p *StripeProvider) CreateCheckoutSession(req PaymentRequest) (string, error) {
+func (p *StripeProvider) CreateCheckoutSession(req types.PaymentRequest) (string, error) {
 	params := &stripe.CheckoutSessionParams{
-		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
+		// PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
 		Mode:               stripe.String(string(stripe.CheckoutSessionModePayment)),
 		SuccessURL:         stripe.String(req.SuccessUrl),
 		CancelURL:          stripe.String(req.CancelUrl),
@@ -68,7 +60,7 @@ func (p *StripeProvider) CreateCheckoutSession(req PaymentRequest) (string, erro
 	return s.ID, nil
 }
 
-func (p *StripeProvider) CreatePaymentIntent(req PaymentRequest) (string, error) {
+func (p *StripeProvider) CreatePaymentIntent(req types.PaymentRequest) (string, error) {
 	params := &stripe.PaymentIntentParams{
 		Amount:   stripe.Int64(req.Amount),
 		Currency: stripe.String(req.Currency),
@@ -89,14 +81,14 @@ func (p *StripeProvider) CreatePaymentIntent(req PaymentRequest) (string, error)
 	return pi.ClientSecret, nil
 }
 
-func (p *StripeProvider) HandlePaymentSuccess(payload []byte, sigHeader string) (*PaymentSuccessWebhookResponse, error) {
+func (p *StripeProvider) HandlePaymentSuccess(payload []byte, sigHeader string) (*types.PaymentSuccessWebhookResponse, error) {
 	event, err := webhook.ConstructEvent(payload, sigHeader, p.webhookSecret)
 	if err != nil {
 		return nil, fmt.Errorf("veryfing stripe webhook signature: %w", err)
 	}
 
 	if event.Type != "payment_intent.succeeded" {
-		return nil, fmt.Errorf("%w: %s", errUnknownWebhookEventType, event.Type)
+		return nil, fmt.Errorf("%w: %s", ErrUnknownWebhookEventType, event.Type)
 	}
 
 	var pi stripe.PaymentIntent
@@ -106,7 +98,7 @@ func (p *StripeProvider) HandlePaymentSuccess(payload []byte, sigHeader string) 
 		return nil, fmt.Errorf("unmarhsaling payment_intent: %w", err)
 	}
 
-	return &PaymentSuccessWebhookResponse{
+	return &types.PaymentSuccessWebhookResponse{
 		ID: pi.ID,
 		Amount: pi.Amount,
 		Currency: string(pi.Currency),
