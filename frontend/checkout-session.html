@@ -48,15 +48,17 @@
     const amount = Math.round(parseFloat(amountInput) * 100);
     const orderId = document.getElementById("orderId").value
 
+    const baseUrl = window.location.origin;
+
     try {
-      const res = await fetch("http://localhost:6767/create-checkout-session", {
+      const res = await fetch(`${baseUrl}/create-checkout-session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: amount,
           currency: currencyInput,
-          successUrl: "http://localhost:6767?succes=true",
-          cancelUrl: "http://localhost:6767?cancel=true",
+          successUrl: `${baseUrl}?success=true`,
+          cancelUrl: `${baseUrl}?cancel=true`,
           orderId: orderId,
         })
       });
